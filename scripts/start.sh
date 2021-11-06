@@ -64,28 +64,24 @@ else
     unset TEST_PARAM
 fi
 
-echo "certbot certonly --manual --preferred-challenges dns \
-    --manual-auth-hook /scripts/auth.sh \
-    --manual-cleanup-hook /scripts/cleanup.sh \
-    $EMAIL_PARAM -d $LETSENCRYPT_DOMAIN \
-    --agree-tos --manual-public-ip-logging-ok --keep $TEST_PARAM"
-
 # Create certificates
-certbot certonly --manual --preferred-challenges dns \
-    --manual-auth-hook /scripts/auth.sh \
-    --manual-cleanup-hook /scripts/cleanup.sh \
-    $EMAIL_PARAM -d $LETSENCRYPT_DOMAIN \
-    --agree-tos --manual-public-ip-logging-ok --keep $TEST_PARAM
+for DOMAIN in $(echo $LETSENCRYPT_DOMAIN | tr "," "\n"); do
+    certbot certonly --manual --preferred-challenges dns \
+        --manual-auth-hook /scripts/auth.sh \
+        --manual-cleanup-hook /scripts/cleanup.sh \
+        $EMAIL_PARAM -d ${DOMAIN} \
+        --agree-tos --manual-public-ip-logging-ok --keep $TEST_PARAM
 
-chown -R $UID:$GID /etc/letsencrypt
+    chown -R $UID:$GID /etc/letsencrypt
 
-# Check for successful certificate generation
-if [ ! -d "/etc/letsencrypt/live/${LETSENCRYPT_DOMAIN#\*\.}" ] || \
-    [ ! -f "/etc/letsencrypt/live/${LETSENCRYPT_DOMAIN#\*\.}/fullchain.pem" ] || \
-    [ ! -f "/etc/letsencrypt/live/${LETSENCRYPT_DOMAIN#\*\.}/privkey.pem" ]; then
-    echo "ERROR: Failed to create SSL certificates"
-    exit 1
-fi
+    # Check for successful certificate generation
+    if [ ! -d "/etc/letsencrypt/live/${DOMAIN#\*\.}" ] || \
+        [ ! -f "/etc/letsencrypt/live/${DOMAIN#\*\.}/fullchain.pem" ] || \
+        [ ! -f "/etc/letsencrypt/live/${DOMAIN#\*\.}/privkey.pem" ]; then
+        echo "ERROR: Failed to create SSL certificates"
+        exit 1
+    fi
+done
 
 # Check if certificates require renewal twice a day
 while :; do
