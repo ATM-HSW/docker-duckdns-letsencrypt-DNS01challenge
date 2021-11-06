@@ -31,22 +31,33 @@ Automatically generates Let's Encrypt certificates using a lightweight Docker co
 
 **Note:** To use the `<certs>` host volume in another container, mount it as read-only for those containers. The `<certs>` host volume should be read-write enabled for the Letsencrypt container.
 
-
 ## Usage
 
-To build the image run:
-```
-docker build -t aazario/letsencrypt-duckdns .
-```
-
-and to create the container run:
 ```
 docker run \
     -e DUCKDNS_TOKEN=XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX \
-    -e DUCKDNS_DOMAIN=test.duckdns.org \
+    -e DUCKDNS_DOMAIN=foo.duckdns.org,bar.duckdns.org \
     -e LETSENCRYPT_WILDCARD=false \
     -e LETSENCRYPT_EMAIL= \
     -e TESTING=false \
+    -e UID=0 \
+    -e GID=0 \
+    -v ${PWD}/certs:/etc/letsencrypt \
+    -it aazario/duckdns-letsencrypt
+```
+
+# Experimental
+
+Multiple domains can be defined (comma separated, no spaces) in `DUCKDNS_DOMAIN` and `LETSENCRYPT_DOMAIN` (must be a subset of `DUCKDNS_DOMAIN`). However the certificates are generated separately, not as a multi-domain certificate. This is done this way to avoid the *"unauthorized ... wrong TXT record"* error, is there a problem with using multiple TXT records in DuckDNS or with propagation times?.
+
+```
+docker run \
+    -e DUCKDNS_TOKEN=XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX \
+    -e DUCKDNS_DOMAIN=foo.duckdns.org,bar.duckdns.org,baz.duckdns.org \
+    -e LETSENCRYPT_DOMAIN=bar.duckdns.org,baz.duckdns.org \
+    -e LETSENCRYPT_WILDCARD=false \
+    -e LETSENCRYPT_EMAIL= \
+    -e TESTING=true \
     -e UID=0 \
     -e GID=0 \
     -v ${PWD}/certs:/etc/letsencrypt \
