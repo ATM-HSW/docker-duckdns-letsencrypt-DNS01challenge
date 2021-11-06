@@ -1,4 +1,4 @@
-image: jdrouet/docker-with-buildx:stable
+image: aazario/docker-with-buildx
 
 variables:
   DOCKER_HOST: tcp://docker:2375/
