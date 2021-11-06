@@ -46,7 +46,7 @@ docker run \
     -e DUCKDNS_DOMAIN=test.duckdns.org \
     -e LETSENCRYPT_WILDCARD=false \
     -e LETSENCRYPT_EMAIL= \
-    -e ESTING=false \
+    -e TESTING=false \
     -e UID=0 \
     -e GID=0 \
     -v ${PWD}/certs:/etc/letsencrypt \
