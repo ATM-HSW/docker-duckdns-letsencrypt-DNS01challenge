@@ -1,16 +1,25 @@
 #!/bin/sh
 
-# Check variables DUCKDNS_TOKEN, DUCKDNS_DOMAIN
+# Check variables DUCKDNS_TOKEN, DUCKDNS_DOMAIN, KEY_TYPE, KEY_SIZE
 if [ -z "$DUCKDNS_TOKEN" ] || [ "$DUCKDNS_TOKEN" = "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX" ]; then
-    echo "ERROR: Variable DUCKDNS_TOKEN is unset or still its default value"
+    echo "ERROR: Variable DUCKDNS_TOKEN is unset"
     exit 1
 fi
 
 if [ -z "$DUCKDNS_DOMAIN" ]; then
-    echo "ERROR: Variable DUCKDNS_DOMAIN is unset or still its default value"
+    echo "ERROR: Variable DUCKDNS_DOMAIN is unset"
     exit 1
 fi
 
+if [ -z "$KEY_TYPE" ]; then
+    echo "ERROR: Variable KEY_TYPE is unset"
+    exit 1
+fi
+
+if [ -z "$KEY_SIZE" ]; then
+    echo "ERROR: Variable KEY_SIZE is unset"
+    exit 1
+fi
 # Print email notice if applicable
 if [ -z "$LETSENCRYPT_EMAIL" ]; then
     echo "WARNING: You will not receive SSL certificate expiration notices"
@@ -44,6 +53,8 @@ fi
 # Print variables
 echo "DUCKDNS_TOKEN: $DUCKDNS_TOKEN"
 echo "DUCKDNS_DOMAIN: $DUCKDNS_DOMAIN"
+echo "LETSENCRYPT_KEY_TYPE: $KEY_TYPE"
+echo "LETSENCRYPT_KEY_SIZE: $KEY_SIZE"
 echo "LETSENCRYPT_DOMAIN: $LETSENCRYPT_DOMAIN"
 echo "LETSENCRYPT_EMAIL: $LETSENCRYPT_EMAIL"
 echo "LETSENCRYPT_WILDCARD: $LETSENCRYPT_WILDCARD"
@@ -52,9 +63,9 @@ echo "UID: $UID"
 echo "GID: $GID"
 
 if [ -z "$LETSENCRYPT_EMAIL" ]; then
-    EMAIL_PARAM="--register-unsafely-without-email"
+    EMAIL_PARAM="" #"--register-unsafely-without-email"
 else
-    EMAIL_PARAM="-m $LETSENCRYPT_EMAIL --no-eff-email"
+    EMAIL_PARAM="--email $LETSENCRYPT_EMAIL" #"-m $LETSENCRYPT_EMAIL --no-eff-email"
 fi
 
 if [ "$TESTING" = "true" ]; then
@@ -66,11 +77,16 @@ fi
 
 # Create certificates
 for DOMAIN in $(echo $LETSENCRYPT_DOMAIN | tr "," "\n"); do
-    certbot certonly --manual --preferred-challenges dns \
-        --manual-auth-hook /scripts/auth.sh \
-        --manual-cleanup-hook /scripts/cleanup.sh \
-        $EMAIL_PARAM -d ${DOMAIN} \
-        --agree-tos --manual-public-ip-logging-ok --keep $TEST_PARAM
+    certbot certonly \
+        --non-interactive \
+        --agree-tos \
+        --key-type ${KEY_TYPE} --rsa-key-size ${KEY_SIZE} \
+        --preferred-challenges dns \
+        --authenticator dns-duckdns \
+        --dns-duckdns-token ${DUCKDNS_TOKEN} \
+        --dns-duckdns-propagation-seconds 60 \
+        $EMAIL_PARAM \
+        -d ${LETSENCRYPT_DOMAIN}
 
     chown -R $UID:$GID /etc/letsencrypt
 
@@ -81,6 +97,8 @@ for DOMAIN in $(echo $LETSENCRYPT_DOMAIN | tr "," "\n"); do
         echo "ERROR: Failed to create SSL certificates"
         exit 1
     fi
+
+    ./deploy.sh
 done
 
 # Check if certificates require renewal twice a day
@@ -91,6 +109,6 @@ while :; do
     sleep $((${LETSENCRYPT_DELAY} * 60)) # Convert to seconds
 
     echo "INFO: Attempting SSL certificate renewal"
-    certbot --manual-public-ip-logging-ok renew
+    certbot renew --deploy-hook /scripts/deploy.sh
     chown -R $UID:$GID /etc/letsencrypt
 done
