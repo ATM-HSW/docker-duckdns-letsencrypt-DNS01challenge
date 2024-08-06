@@ -85,6 +85,7 @@ for DOMAIN in $(echo $LETSENCRYPT_DOMAIN | tr "," "\n"); do
         --authenticator dns-duckdns \
         --dns-duckdns-token ${DUCKDNS_TOKEN} \
         --dns-duckdns-propagation-seconds 60 \
+        --dns-duckdns-no-txt-restore \
         $EMAIL_PARAM \
         -d ${LETSENCRYPT_DOMAIN}
 
